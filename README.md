@@ -1,70 +1,102 @@
-# Getting Started with Create React App
+# 🎥 Real-Time Camera Interface with Snapshot & Frame Upload
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project is a **React + Flask-based camera system** that allows users to:
 
-## Available Scripts
+- Stream live video from available webcams.
+- Take snapshots and store logs with timestamps.
+- Record video with timer and download it.
+- Send frames **every second** to a Flask backend for further processing or storage.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🧰 Technologies & Libraries
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 🔹 Frontend (React)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **React** – UI library.
+- **react-webcam** – Webcam component for capturing video and screenshots.
+- **JavaScript Fetch API** – Sending frames to backend.
+- **Blob / URL.createObjectURL** – Video download.
 
-### `npm test`
+### 🔹 Backend (Flask)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Flask** – Web framework.
+- **flask_cors** – Enables CORS to allow frontend-backend communication.
+- **base64** – Decoding images sent from frontend.
+- **os** / **datetime** – Handling uploads and naming files with timestamps.
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🚀 How It Works
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 🖥 Frontend (`CameraComponent.jsx`)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Lists available camera devices.
+- Allows switching cameras via dropdown.
+- User can:
+  - 📸 Take snapshot → logged & shown on UI.
+  - 🎬 Record video → timer updates & downloadable.
+  - 🧠 Background task sends frames every 1 second to Flask.
 
-### `npm run eject`
+```jsx
+setInterval(() => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    fetch("http://localhost:5000/upload_frame", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageSrc }),
+    });
+}, 1000);
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Backend (app.py)
+Starts Flask server on port 5000.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Accepts POST requests on /upload_frame.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Receives base64-encoded image, decodes it, and saves it as .jpg with timestamp.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+@app.route('/upload_frame', methods=['POST'])
+def upload_frame():
+    image_data = request.get_json()['image'].split(",")[1]
+    image_bytes = base64.b64decode(image_data)
+    ...
+Stored in /uploaded_frames with a name like:
+frame_20250716141730824930.jpg
 
-## Learn More
+🛠️ Setup Instructions
+⚙️ Backend Setup (Flask)
+cd camera-backend
+pip install flask flask-cors
+python app.py
+This runs at: http://localhost:5000
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+🌐 Frontend Setup (React)
+cd camera-frontend
+npm install
+npm start
+This runs at: http://localhost:3000
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Key Features
+Auto camera detection.
 
-### Code Splitting
+Snapshot capture with timestamp log.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Video recording with built-in download.
 
-### Analyzing the Bundle Size
+Real-time frame upload to backend every 1 sec.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Fully styled responsive UI.
 
-### Making a Progressive Web App
+Saved Files
+📸 Snapshots → Displayed in the UI with timestamp.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+🎥 Recorded Video → Downloads as recorded_video.webm.
 
-### Advanced Configuration
+📝 Event Logs → Downloaded as logs.json.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+🧠 Frames Sent to Backend → Saved in camera-backend/uploaded_frames.
 
-### Deployment
+📈 Performance Note
+Latency is typically low (~100–200ms) on localhost.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+You may optimize image resolution, compression, or FPS for production use.
