@@ -1,34 +1,61 @@
 from flask import Flask, request, jsonify
-from datetime import datetime
-import os
+from flask_cors import CORS
+import base64
+import cv2
+import numpy as np
+from ultralytics import YOLO
 
 app = Flask(__name__)
+CORS(app)
 
-# Create upload folder if not exists
-UPLOAD_FOLDER = 'uploads'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Load YOLO model (replace with your trained .pt file if needed)
+model = YOLO("yolov8n.pt")  # e.g. "urine_volume_parent.pt"
+
+def decode_base64_image(image_base64):
+    """Convert base64 string from frontend into OpenCV image"""
+    image_data = base64.b64decode(image_base64.split(",")[1])
+    np_array = np.frombuffer(image_data, np.uint8)
+    return cv2.imdecode(np_array, cv2.IMREAD_COLOR)
 
 @app.route("/")
 def home():
-    return "Camera Backend is running!"
+    return "✅ Camera backend with YOLO is running."
 
-@app.route("/upload_snapshot", methods=["POST"])
-def upload_snapshot():
-    if 'image' not in request.files:
-        return jsonify({"error": "No image part"}), 400
+@app.route("/upload_frame", methods=["POST"])
+def upload_frame():
+    try:
+        data = request.get_json()
+        if "image" not in data:
+            return jsonify({"error": "No image field in request"}), 400
 
-    image = request.files['image']
-    timestamp = request.form.get('timestamp', datetime.utcnow().isoformat())
+        # Decode image
+        img = decode_base64_image(data["image"])
 
-    if image.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+        # Run YOLO inference
+        results = model.predict(img, conf=0.5, verbose=False)
 
-    filename = f"{timestamp.replace(':', '-').replace('.', '-')}.jpg"
-    save_path = os.path.join(UPLOAD_FOLDER, filename)
-    image.save(save_path)
+        boxes_out = []
+        for r in results:
+            for box in r.boxes:
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                conf = float(box.conf[0])
+                cls_id = int(box.cls[0])
+                label = model.names[cls_id]
 
-    return jsonify({"message": "Snapshot uploaded successfully", "filename": filename}), 200
+                H, W = img.shape[:2]
+                boxes_out.append({
+                    "x1": x1 / W,
+                    "y1": y1 / H,
+                    "x2": x2 / W,
+                    "y2": y2 / H,
+                    "confidence": conf,
+                    "label": label
+                })
+
+        return jsonify({"boxes": boxes_out}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

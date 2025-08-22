@@ -52,9 +52,8 @@ select:hover {
   transition: box-shadow 0.3s ease;
 }
 
-
 /* Button style */
-.container>div>button {
+.container > div > button {
   margin: 10px;
   padding: 12px 20px;
   font-size: 16px;
@@ -66,7 +65,7 @@ select:hover {
   transition: background-color 0.3s ease;
 }
 
-.container>div>button:hover {
+.container > div > button:hover {
   background-color: #0056b3;
 }
 
@@ -86,6 +85,7 @@ select:hover {
   width: 220px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+
 .snapshot-box {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -94,7 +94,6 @@ select:hover {
   transform: scale(1.05);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
-
 
 .snapshot-box p {
   margin: 8px 0;
@@ -131,3 +130,50 @@ select:hover {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+/* ===================== */
+/* Overlay + video fit for resize-aware boxes */
+/* ===================== */
+
+/* Ensure the video container has size and is positioning context */
+.webcam-box {
+  position: relative;        /* allow absolute overlay children */
+  width: 100%;               /* responsive */
+  max-width: 960px;          /* match container width */
+  aspect-ratio: 16 / 9;      /* maintain webcam aspect ratio */
+  height: auto;
+}
+
+/* Make the <video> fill the box while preserving aspect */
+.webcam {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;       /* must match mapping math */
+  display: block;
+}
+
+/* Overlay layer that sits on top of the video */
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;      /* let clicks pass through */
+}
+
+/* Each bounding box */
+.bbox {
+  position: absolute;
+  border: 3px solid #00ff00;
+  box-sizing: border-box;
+}
+
+.bbox-label {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: #00ff00;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
